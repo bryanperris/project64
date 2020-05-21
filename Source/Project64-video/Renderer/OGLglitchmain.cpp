@@ -18,6 +18,8 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#include <gl\GL.h>
+#include "wglext.h"
 #else
 #include <stdint.h>
 #include <stdarg.h>
@@ -504,24 +506,57 @@ bool gfxSstWinOpen(gfxColorFormat_t color_format, gfxOriginLocation_t origin_loc
         return false;
     }
 
-    if ((hGLRC = wglCreateContext(hDC)) == 0)
-    {
-        WriteTrace(TraceGlitch, TraceWarning, "wglCreateContext failed!");
-        gfxSstWinClose();
-        return false;
-    }
+    /* Attempt to create a context using OpenGL 3.2 core profile */
 
-    HGLRC CurrenthGLRC = wglGetCurrentContext();
-
-    if (CurrenthGLRC == NULL || CurrenthGLRC == hGLRC)
-    {
-        if (!wglMakeCurrent(hDC, hGLRC))
+        /* Create one with the highest up to OpenGL 3.1 */
+        if ((hGLRC = wglCreateContext(hDC)) == 0)
         {
-            WriteTrace(TraceGlitch, TraceWarning, "wglMakeCurrent failed!");
+            WriteTrace(TraceGlitch, TraceWarning, "wglCreateContext failed!");
             gfxSstWinClose();
             return false;
         }
-    }
+
+        HGLRC CurrenthGLRC = wglGetCurrentContext();
+
+        if (CurrenthGLRC == NULL || CurrenthGLRC == hGLRC)
+        {
+            if (!wglMakeCurrent(hDC, hGLRC))
+            {
+                WriteTrace(TraceGlitch, TraceWarning, "wglMakeCurrent failed!");
+                gfxSstWinClose();
+                return false;
+            }
+        }
+
+        PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB =
+            (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB");
+
+        if (wglCreateContextAttribsARB != NULL) {
+            int attribList[] =
+            {
+                WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
+                WGL_CONTEXT_MINOR_VERSION_ARB, 2,
+                WGL_CONTEXT_FLAGS_ARB,  WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+                0,
+            };
+
+            if ((hGLRC = wglCreateContextAttribsARB(hDC, 0, attribList)) != 0) {
+                g_Notify->DisplayError("OpenGL 3.2 Created!");
+
+                HGLRC CurrenthGLRC = wglGetCurrentContext();
+
+                if (CurrenthGLRC == NULL || CurrenthGLRC == hGLRC)
+                {
+                    if (!wglMakeCurrent(hDC, hGLRC))
+                    {
+                        WriteTrace(TraceGlitch, TraceWarning, "wglMakeCurrent failed!");
+                        gfxSstWinClose();
+                        return false;
+                    }
+                }
+            }
+        }
+
 #endif // _WIN32
     lfb_color_fmt = color_format;
     if (origin_location != GFX_ORIGIN_UPPER_LEFT) WriteTrace(TraceGlitch, TraceWarning, "origin must be in upper left corner");

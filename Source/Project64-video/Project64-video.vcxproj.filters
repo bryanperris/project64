@@ -158,6 +158,9 @@
     <ClInclude Include="Renderer\glitchmain.h">
       <Filter>Renderer</Filter>
     </ClInclude>
+    <ClInclude Include="Renderer\wglext.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CRC.cpp">
