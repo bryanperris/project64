@@ -554,6 +554,8 @@ bool gfxSstWinOpen(gfxColorFormat_t color_format, gfxOriginLocation_t origin_loc
                         return false;
                     }
                 }
+
+                g_Notify->DisplayError((const char*)glGetString(GL_VERSION));
             }
         }
 
